@@ -9,6 +9,8 @@ exp.chat = function(channelid, msg, app, cb) {
 		return;
 	}
 
+    console.log(channelid);
+    console.log(msg);
 	var res = dispatcher.dispatch(channelid, chatServers);
 
 	cb(null, res.id);

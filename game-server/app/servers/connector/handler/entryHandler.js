@@ -27,39 +27,37 @@ handler.quit = function(msg, session, next) {
  * @param  {Function} next    next stemp callback
  * @return {Void}
  */
-handler.enter = function(msg, session, next) {
+handler.addchannels = function(msg, session, next) {
     var self = this;
-    var channel = msg.channel;
+    var channels = msg.channels;
+    var clientType = msg.clientType;
     var username = msg.username;
+    var uid=username+"*"+clientType;
     var sessionService = self.app.get('sessionService');
-    if(!session.uid&&sessionService.getByUid(username)){
-        sessionService.kick(username);
+    if(!session.uid&&sessionService.getByUid(uid)){
+        sessionService.kick(uid);
     }
     //第一次登陆
-    if( ! sessionService.getByUid(username)) {
-        session.bind(username);
+    if( ! sessionService.getByUid(uid)) {
+        session.bind(uid);
         session.set('username', username);
-        session.set('channel', [channel]);
+        session.set('channel', []);
+
 
         session.on('closed', onUserLeave.bind(null, self.app));
-    }else{
-        session.get('channel').push(channel);
     }
-
-
-
+    for (var i=0;i<channels.length;i++){
+        session.get('channel').push(channels[i]);
+        self.app.rpc.chat.chatRemote.add(channels[i], uid, self.app.get('serverId'), channels[i], true, null);
+    }
     session.pushAll(function(err) {
         if(err) {
             console.error('set rid for session service failed! error is : %j', err.stack);
         }
     });
-
-    //put user into channel
-    self.app.rpc.chat.chatRemote.add(channel, username, self.app.get('serverId'), channel, true, function(users){
-        next(null, {
-            code:200,
-            users:users
-        });
+    next(null,{
+        route:'addchannels',
+        code:200
     });
 };
 
@@ -77,6 +75,7 @@ var onUserLeave = function(app, session) {
     var channels = session.get('channel');
     for(var i=0;i<channels.length;i++){
         app.rpc.chat.chatRemote.kick(channels[i], session.uid, app.get('serverId'), channels[i], null);
+
     }
 
 };
